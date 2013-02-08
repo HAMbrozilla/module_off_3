@@ -1,0 +1,7 @@
+name = Video Game Queries
+description = Performs queries on Video Games using EntityFieldQuery.
+dependencies[] = date_api
+dependencies[] = date
+package = Module Off
+core = 7.x
+
