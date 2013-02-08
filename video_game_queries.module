@@ -1,0 +1,94 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function video_game_queries_menu() {
+  $items['recent-game-list'] = array(
+    'access callback' => TRUE,
+    'page callback' => 'recent_video_game_queries_view',
+  );
+  $items['game-list'] = array(
+    'access callback' => TRUE,
+    'page callback' => 'video_game_queries_view',
+  );
+  return $items;
+}
+
+/**
+ * Page callback: Returns a list of Video Game nodes with a Release Date in the last three years.
+ *
+ * @see video_game_queries_menu()
+ */
+function recent_video_game_queries_view() {
+  // Instantiate the extended EFQ object.
+  $query = new VideoGameEntityFieldQuery();
+
+  // Modify the query to find up to ten Video Games released in the past three years.
+  $query->fieldCondition('field_release_date', 'value', date('Y-m-d h:i:s' ,strtotime('-3 year', time())), '>=');
+
+  // Retrieve the query result.
+  $result = $query->execute();
+
+  // Load the nodes based on the query result.
+  $video_games = node_load_multiple(array_keys($result['node']));
+
+  $table = array();
+  $table['title'] = t('Recent Video Games');
+  $table['header'] = array('Title', 'Description', 'Release Date');
+
+  foreach ($video_games as $video_game) {
+    $date = date('F j, Y', strtotime($video_game->field_release_date['und'][0]['value']));
+    $table['rows'][] = array($video_game->title, substr($video_game->body['und'][0]['safe_value'], 0, 60).'...', $date);
+  }
+
+  return theme('table', $table);
+}
+
+/**
+ * Page callback: Returns a list of all Video Game nodes.
+ *
+ * @see video_game_queries_menu()
+ */
+function video_game_queries_view() {
+  // Instantiate the extended EFQ object.
+  $query = new VideoGameEntityFieldQuery();
+
+  // Retrieve the query result.
+  $result = $query->execute();
+
+  // Load the nodes based on the query result.
+  $video_games = node_load_multiple(array_keys($result['node']));
+
+  $table = array();
+  $table['title'] = t('All Video Games');
+  $table['header'] = array('Title', 'Description', 'Release Date');
+
+  foreach ($video_games as $video_game) {
+    $date = date('F j, Y', strtotime($video_game->field_release_date['und'][0]['value']));
+    $table['rows'][] = array($video_game->title, substr($video_game->body['und'][0]['safe_value'], 0, 60).'...', $date);
+  }
+
+  return theme('table', $table);
+}
+
+/** 
+ * Extends EntityFieldQuery.
+ * Allows customization of extended object types for future use.
+ * Any VGEFQ instantiated will have the conditions defined here.
+ */
+class VideoGameEntityFieldQuery extends EntityFieldQuery {
+  // Define a constructor for new object initialization.
+  public function __construct() {
+    // Utilize EFQ's methods to define the query. Can be chained as below.
+    $this
+      // Retrieve only entities of the type node with entityCondition.
+      ->entityCondition('entity_type', 'node')
+      // Retrieve nodes with status 'published' with propertyCondition.
+      ->propertyCondition('status', 1)
+      // Retrieve nodes with type 'video_game' with propertyCondition.
+      ->propertyCondition('type', 'video_game')
+      // Order results in descending order based on release date field.
+      ->fieldOrderBy('field_release_date', 'value', 'DESC');
+  }
+}
